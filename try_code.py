@@ -1,67 +1,120 @@
+# from manim import *
+
+# class QuadraticEquationSolver(Scene):
+#     def construct(self):
+#         # Equation
+#         equation = MathTex("ax^2 + bx + c = 0").scale(1.5)
+#         self.play(Write(equation))
+#         self.wait(1)
+#         self.play(FadeOut(equation))
+
+#         # Coefficients
+#         a, b, c = 2, -5, 2
+#         coefficients = MathTex(f"a = {a}, b = {b}, c = {c}").scale(1.2)
+#         self.play(Write(coefficients))
+#         self.wait(1)
+
+
+#         # Quadratic Formula
+#         formula = MathTex(r"x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}").scale(1.2)
+#         self.play(TransformMatchingTex(coefficients, formula))
+#         self.wait(1)
+#         self.play(FadeOut(formula))
+
+#         # Substitution
+#         substitution = MathTex(r"x = \frac{-(-5) \pm \sqrt{(-5)^2 - 4(2)(2)}}{2(2)}").scale(1.2)
+#         self.play(Write(substitution))
+#         self.wait(1)
+#         self.play(FadeOut(substitution))
+
+#         # Simplification
+#         simplification1 = MathTex(r"x = \frac{5 \pm \sqrt{25 - 16}}{4}").scale(1.2)
+#         self.play(TransformMatchingTex(substitution, simplification1))
+#         self.wait(1)
+#         self.play(FadeOut(simplification1))
+
+#         simplification2 = MathTex(r"x = \frac{5 \pm \sqrt{9}}{4}").scale(1.2)
+#         self.play(TransformMatchingTex(simplification1, simplification2))
+#         self.wait(1)
+#         self.play(FadeOut(simplification2))
+
+#         # Solutions
+#         solution1 = MathTex(r"x_1 = \frac{5 + 3}{4} = 2").scale(1.2)
+#         solution2 = MathTex(r"x_2 = \frac{5 - 3}{4} = \frac{1}{2}").scale(1.2)
+#         solutions = VGroup(solution1, solution2).arrange(DOWN)
+#         self.play(Write(solutions))
+#         self.wait(1)
+
+
+#         # Graph
+#         axes = Axes(x_range=[-1, 3, 1], y_range=[-1, 5, 1], axis_config={"include_numbers": True})
+#         parabola = axes.plot(lambda x: 2*x**2 - 5*x + 2, color=YELLOW)
+#         roots = [0.5, 2]
+#         root_dots = VGroup(*[Dot(axes.c2p(root, 0), color=RED) for root in roots])
+#         self.play(Create(axes), Create(parabola), Create(root_dots))
+#         self.wait(2)
+
+
+#         self.play(*[FadeOut(mob) for mob in self.mobjects])
 from manim import *
 
-class QuadraticEquationSolver(Scene):
+class ProjectileMotion(Scene):
     def construct(self):
-        # Equation (MathTex ensures it can be used in TransformMatchingTex)
-        equation = MathTex("ax^2 + bx + c = 0").scale(1.5)
-        self.play(Write(equation))
+        # --- Scene Setup ---
+        axes = Axes(
+            x_range=[0, 10, 1],
+            y_range=[0, 5, 1],
+            x_length=8,
+            y_length=4,
+            axis_config={"include_numbers": True}
+        )
+        labels = axes.get_axis_labels(x_label="x (m)", y_label="y (m)")
+
+        # --- Physics and Calculations ---
+        g = 9.81  # Acceleration due to gravity (m/s^2)
+        v0 = 10  # Initial velocity (m/s)
+        theta = PI / 4  # Launch angle (radians)
+
+        t = np.linspace(0, 2 * v0 * np.sin(theta) / g, 100) # Time vector
+
+        x = v0 * np.cos(theta) * t
+        y = v0 * np.sin(theta) * t - 0.5 * g * t**2
+
+        path = ParametricFunction(lambda t: axes.c2p(v0 * np.cos(theta) * t, v0 * np.sin(theta) * t - 0.5 * g * t**2), t_range=[0, 2 * v0 * np.sin(theta) / g])
+        projectile = Dot(color=YELLOW)
+
+        # --- Object and Path Animations ---
+        self.play(Create(axes), Create(labels))
+        self.play(Create(path))
+
+        projectile.move_to(axes.c2p(0,0)) #Starting Position
+        self.play(
+            MoveAlongPath(projectile, path),
+            run_time=2 # Adjust animation speed
+        )
+
+        # --- Dynamic Elements ---
+        velocity_vector = Arrow(start=axes.c2p(0,0), end=axes.c2p(v0*np.cos(theta),v0*np.sin(theta)), color=RED, buff=0)
+        self.play(Create(velocity_vector))
+
+        # --- Concept-Specific Features ---
+        max_height_point = axes.c2p(x[np.argmax(y)], np.max(y))
+        max_height_label = Tex("Max Height").next_to(max_height_point, UP)
+        self.play(
+            Indicate(max_height_point),
+            Create(max_height_label)
+        )
+
+
+        # ---Scene Transitions (Example)---
         self.wait(1)
 
-        # Quadratic Formula
-        formula = MathTex(
-            "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}"
-        ).scale(1.2).to_edge(UP)
-        self.play(Write(formula))
-        self.wait(1)
 
-        # Example Equation (Make sure this is MathTex as well)
-        example = MathTex("2x^2 + 5x + 2 = 0").next_to(equation, DOWN, buff=1)
-        self.play(Write(example))
-        self.wait(1)
+        # ---Error Prevention - Example (check for valid attributes before use)---
+        if hasattr(projectile, "move_to"):
+          self.play(projectile.move_to(axes.c2p(x[-1],y[-1]))) # Move projectile to end position
+        else:
+          print("Error: projectile object does not have move_to method")
 
-        # Extract coefficients as MathTex (not Integer or other types)
-        a = MathTex("2").set_color(YELLOW).next_to(example, RIGHT, buff=0.5)
-        b = MathTex("5").set_color(YELLOW).next_to(a, RIGHT, buff=0.5)
-        c = MathTex("2").set_color(YELLOW).next_to(b, RIGHT, buff=0.5)
-        coef_group = VGroup(a, b, c)
 
-        # Transform matching text objects
-        self.play(TransformMatchingTex(example[0:1], a),
-                  TransformMatchingTex(example[3:4], b),
-                  TransformMatchingTex(example[6:7], c))
-        self.wait(1)
-        self.play(FadeOut(example))
-        
-        # Substitute into the formula (using MathTex)
-        substituted_formula = MathTex(
-            "x = \\frac{-5 \\pm \\sqrt{5^2 - 4(2)(2)}}{2(2)}"
-        ).scale(1.2).next_to(formula, DOWN, buff=1)
-
-        self.play(TransformMatchingTex(formula, substituted_formula))
-        self.wait(1)
-
-        # Simplify steps (keep all as MathTex)
-        step1 = MathTex("x = \\frac{-5 \\pm \\sqrt{25 - 16}}{4}").next_to(substituted_formula, DOWN, buff=1)
-        step2 = MathTex("x = \\frac{-5 \\pm \\sqrt{9}}{4}").next_to(step1, DOWN, buff=1)
-        step3 = MathTex("x = \\frac{-5 \\pm 3}{4}").next_to(step2, DOWN, buff=1)
-
-        self.play(TransformMatchingTex(substituted_formula, step1))
-        self.wait(1)
-        self.play(TransformMatchingTex(step1, step2))
-        self.wait(1)
-        self.play(TransformMatchingTex(step2, step3))
-        self.wait(1)
-
-        # Solutions
-        solution1 = MathTex("x_1 = \\frac{-5 + 3}{4} = \\frac{-2}{4} = -\\frac{1}{2}").next_to(step3, DOWN, buff=1)
-        solution2 = MathTex("x_2 = \\frac{-5 - 3}{4} = \\frac{-8}{4} = -2").next_to(solution1, DOWN, buff=1)
-
-        self.play(Write(solution1))
-        self.wait(1)
-        self.play(Write(solution2))
         self.wait(2)
-
-        # Final Display 
-        final_display = VGroup(equation, formula, solution1, solution2)
-        self.play(final_display.arrange(DOWN, buff=1).scale(0.8).center())
-        self.wait(3)
