@@ -135,6 +135,7 @@ import re
 import google.generativeai as genai
 import subprocess
 import os
+import time
 from manim import config
 from manim import *
 
@@ -224,7 +225,8 @@ def refine_code_multiple_times(initial_code, num_refinements=3):
 # Function to test, refine, and run the animation code
 def test_refine_and_animate(code, max_retries=12):
     filename = "generated_manim_code.py"
-    for attempt in range(max_retries):
+    attempt = 0
+    while attempt < max_retries:
         try:
             code = validate_code(code)
             save_code_to_file(code, filename)
@@ -232,10 +234,14 @@ def test_refine_and_animate(code, max_retries=12):
                 print("Animation generated and played successfully.")
                 return
             else:
-                print(f"Execution failed on attempt {attempt + 1}. Retrying...")
+                attempt += 1
+                print(f"Execution failed on attempt {attempt}. Retrying...")
+                time.sleep(2)  # Adding delay before retrying
         except Exception as e:
-            print(f"Error on attempt {attempt + 1}: {e}")
-
+            attempt += 1
+            print(f"Error on attempt {attempt}: {e}")
+            time.sleep(2)  # Adding delay before retrying
+        
         refinement_prompt = f"""
         The previous code failed with error: {e}
         Refine the code below to fix the issue and improve visualization:
@@ -246,6 +252,7 @@ def test_refine_and_animate(code, max_retries=12):
         """
         response = model.generate_content(refinement_prompt)
         code = extract_python_code(response.text)
+    
     print("Maximum retries reached. Could not execute code successfully.")
     print("Final code attempt:")
     print(code)
@@ -272,6 +279,8 @@ refined_code = refine_code_multiple_times(initial_code)
 print("Refined Code:")
 print(refined_code)
 test_refine_and_animate(refined_code)
+
+
 
 
 
